@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CRM</title>
+
+<style>
+body{font-family:Arial;margin:0;background:#f4f7fb}
+.sidebar{width:200px;background:#1c7fb6;color:white;height:100vh;position:fixed;padding:20px}
+.sidebar div{margin:10px 0;cursor:pointer;padding:8px;border-radius:6px}
+.sidebar .active{background:white;color:#1c7fb6}
+.main{margin-left:220px;padding:20px}
+.scroll-x{overflow-x:auto;white-space:nowrap}
+
+input,select{padding:6px;margin:4px}
+
+table{border-collapse:collapse;min-width:1800px;background:white}
+th,td{border:1px solid #ddd;padding:8px;font-size:14px}
+th{background:#f0f0f0}
+
+button{padding:6px 10px;margin:4px;border:none;border-radius:4px;cursor:pointer}
+.add{background:#1c7fb6;color:white}
+.delete{background:#d11a2a;color:white}
+.move{background:#2e8b57;color:white}
+.edit{background:#ffa500;color:white}
+</style>
+</head>
+
+<body>
+
+<div class="sidebar">
+<h3>CRM</h3>
+<div onclick="switchTab('Leads')" id="tab-Leads" class="active">Leads</div>
+<div onclick="switchTab('Deals')" id="tab-Deals">Deals</div>
+<div onclick="switchTab('Followups')" id="tab-Followups">Follow-ups</div>
+</div>
+
+<div class="main">
+<h2 id="title">Leads</h2>
+
+<!-- INPUTS -->
+<div class="scroll-x">
+
+<input id="address" placeholder="Address *">
+<input id="address" placeholder="Address *">
+<input id="asking" placeholder="Asking Price *">
+<input id="seller" placeholder="Last Seller Price">
+<input id="offer" placeholder="Last Offer">
+<input id="mao" placeholder="MAO">
+<input id="tax" placeholder="Tax">
+<input id="sqft" placeholder="Built Sqft">
+<input id="lotsqft" placeholder="Lot Sqft">
+<input id="beds" placeholder="Beds">
+<input id="baths" placeholder="Baths">
+
+<select id="convo">
+<option value="">Convo</option>
+<option>Not Contacted</option>
+<option>Convo</option>
+<option>Hangup</option>
+</select>
+
+<div style="display:inline-block">
+<small>First Follow-up</small><br>
+<input type="date" id="followup">
+</div>
+
+<div style="display:inline-block">
+<small>Next Follow-up</small><br>
+<input type="date" id="nextfollow">
+</div>
+
+<input id="assign" placeholder="Assignment Fee">
+
+<button class="add" onclick="addItem()" id="addBtn">Add</button>
+<button class="delete" onclick="deleteSelected()">Delete</button>
+
+<select id="moveTarget">
+<option>Leads</option>
+<option>Deals</option>
+<option>Followups</option>
+</select>
+
+<button class="move" onclick="moveSelected()">Move</button>
+
+</div>
+
+<br>
+
+<!-- TABLE -->
+<div class="scroll-x">
+<table>
+<thead>
+<tr>
+<th>Select</th>
+<th>Address</th>
+<th>Asking</th>
+<th>Seller</th>
+<th>Offer</th>
+<th>MAO</th>
+<th>Tax</th>
+<th>Built Sqft</th>
+<th>Lot Sqft</th>
+<th>Beds</th>
+<th>Baths</th>
+<th id="convoHead">Convo</th>
+<th>First Follow-up</th>
+<th>Next Follow-up</th>
+<th>Assignment</th>
+<th>Edit</th>
+</tr>
+</thead>
+
+<tbody id="table"></tbody>
+</table>
+</div>
+
+</div>
+
+<script>
+
+let activeTab='Leads'
+let editIndex=null
+let data=JSON.parse(localStorage.getItem("crmData"))||{Leads:[],Deals:[],Followups:[]}
+
+function save(){
+localStorage.setItem("crmData",JSON.stringify(data))
+}
+
+function switchTab(tab){
+activeTab=tab
+editIndex=null
+clearForm()
+
+document.querySelectorAll('.sidebar div').forEach(d=>d.classList.remove('active'))
+document.getElementById('tab-'+tab).classList.add('active')
+document.getElementById('title').innerText=tab
+
+document.getElementById("convo").style.display = tab==="Leads"?"inline-block":"none"
+document.getElementById("convoHead").style.display = tab==="Leads"?"table-cell":"none"
+
+render()
+}
+
+function validate(){
+let address=document.getElementById("address").value
+let asking=document.getElementById("asking").value
+
+if(!address || !asking){
+alert("Address & Asking Price required")
+return false
+}
+return true
+}
+
+function addItem(){
+
+if(!validate()) return
+
+let item={
+address:document.getElementById("address").value,
+<input id="phone" placeholder="Phone Number">
+asking:document.getElementById("asking").value,
+seller:document.getElementById("seller").value,
+offer:document.getElementById("offer").value,
+mao:document.getElementById("mao").value,
+tax:document.getElementById("tax").value,
+sqft:document.getElementById("sqft").value,
+lotsqft:document.getElementById("lotsqft").value,
+beds:document.getElementById("beds").value,
+baths:document.getElementById("baths").value,
+convo:document.getElementById("convo")?.value || "",
+followup:document.getElementById("followup").value,
+nextfollow:document.getElementById("nextfollow").value,
+assign:document.getElementById("assign").value
+}
+
+if(editIndex!==null){
+data[activeTab][editIndex]=item
+}else{
+data[activeTab].push(item)
+}
+
+clearForm()
+save()
+render()
+}
+
+function clearForm(){
+document.querySelectorAll("input").forEach(i=>i.value="")
+document.querySelectorAll("select").forEach(s=>s.selectedIndex=0)
+document.getElementById("addBtn").innerText="Add"
+editIndex=null
+}
+
+function render(){
+let tbody=document.getElementById('table')
+tbody.innerHTML=''
+
+data[activeTab].forEach((d,i)=>{
+let tr=document.createElement('tr')
+
+tr.innerHTML=`
+<td><input type="checkbox" data-i="${i}"></td>
+<td>${d.address}</td>
+<td>${d.asking}</td>
+<td>${d.seller}</td>
+<td>${d.offer}</td>
+<td>${d.mao}</td>
+<td>${d.tax}</td>
+<td>${d.sqft}</td>
+<td>${d.lotsqft || ''}</td>
+<td>${d.beds}</td>
+<td>${d.baths}</td>
+${activeTab==="Leads"?`<td>${d.convo || ''}</td>`:''}
+<td>${d.followup ? "First Follow-up" : ""}</td>
+<td>${d.nextfollow ? "Next Follow-up" : ""}</td>
+<td>${d.assign}</td>
+<td><button class="edit" onclick="editRow(${i})">Edit</button></td>
+`
+
+tbody.appendChild(tr)
+})
+}
+
+function editRow(i){
+let d=data[activeTab][i]
+editIndex=i
+
+for(let key in d){
+let el=document.getElementById(key)
+if(el) el.value=d[key]
+}
+
+document.getElementById("addBtn").innerText="Update"
+}
+
+function deleteSelected(){
+let checks=[...document.querySelectorAll('tbody input:checked')].map(c=>+c.dataset.i)
+data[activeTab]=data[activeTab].filter((_,i)=>!checks.includes(i))
+save()
+render()
+}
+
+function moveSelected(){
+let target=document.getElementById('moveTarget').value
+if(target===activeTab) return
+
+let checks=[...document.querySelectorAll('tbody input:checked')].map(c=>+c.dataset.i)
+
+if(checks.length===0){
+alert("Select rows first")
+return
+}
+
+let moveItems=[]
+let remaining=[]
+
+data[activeTab].forEach((item,i)=>{
+if(checks.includes(i)) moveItems.push(item)
+else remaining.push(item)
+})
+
+data[activeTab]=remaining
+data[target]=data[target].concat(moveItems)
+
+save()
+render()
+}
+
+render()
+
+</script>
+
+</body>
+</html>
